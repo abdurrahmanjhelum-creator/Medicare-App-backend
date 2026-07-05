@@ -1,0 +1,18 @@
+// TODO: Doctor entity (public view)
+// TODO: Import Entity, PrimaryGeneratedColumn, Column from 'typeorm'
+// TODO: Use @Entity decorator with table name 'doctors'
+// TODO: Create id field with @PrimaryGeneratedColumn()
+// TODO: Create name field with @Column()
+// TODO: Create image field with @Column() (profile image URL)
+// TODO: Create specialization field with @Column()
+// TODO: Create rating field with @Column() (decimal)
+// TODO: Create pmdcLicenceNumber field with @Column()
+// TODO: Create reviews field with @Column() (count)
+// TODO: Create experience field with @Column() (years)
+// TODO: Create branch field with @Column() (clinic name)
+// TODO: Create availability field with @Column() (text)
+// TODO: Create bio field with @Column() (text)
+// TODO: Create qualification field with @Column()
+// TODO: Create doctorFee field with @Column() (decimal)
+// TODO: Create availableDays field with @Column() (array)
+// TODO: Create availableSlots field with @Column() (array)
