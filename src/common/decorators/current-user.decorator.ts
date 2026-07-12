@@ -1,6 +1,8 @@
-// TODO: Custom decorator to get current user from request
-// TODO: Import createParamDecorator, ExecutionContext from @nestjs/common
-// TODO: Create CurrentUser decorator function
-// TODO: Use createParamDecorator to extract user from request object
-// TODO: Return the user object from JWT payload
-// TODO: Export the CurrentUser decorator
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+
+export const CurrentUser = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.user;
+  },
+);

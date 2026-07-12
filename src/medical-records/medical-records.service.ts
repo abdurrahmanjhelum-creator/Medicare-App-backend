@@ -37,34 +37,41 @@ export class MedicalRecordsService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
+  /** Resolve patient by entity _id or userId (appointments use userId as patientId). */
+  private async resolvePatient(patientIdOrUserId: string) {
+    let patient = await this.patientModel.findById(patientIdOrUserId);
+    if (!patient) {
+      patient = await this.patientModel.findOne({ userId: patientIdOrUserId });
+    }
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+    return patient;
+  }
+
   // Create Medical Record method - Naya medical record create karein
   async createMedicalRecord(doctorId: string, createRecordDto: any) {
     const { patientId, diagnosis, prescription, notes, attachments, appointmentId } = createRecordDto;
 
-    // Patient lein database se
-    const patient = await this.patientModel.findById(patientId);
-    if (!patient) {
-      throw new NotFoundException('Patient not found');
-    }
+    const patient = await this.resolvePatient(patientId);
 
-    // Doctor lein database se
     const doctor = await this.doctorModel.findOne({ userId: doctorId });
     if (!doctor) {
       throw new NotFoundException('Doctor not found');
     }
 
-    // Patient user lein
     const patientUser = await this.userModel.findById(patient.userId);
     if (!patientUser) {
       throw new NotFoundException('Patient user not found');
     }
 
-    // Medical record create karein
+    const doctorUser = await this.userModel.findById(doctorId);
+
     const medicalRecord = await this.medicalRecordModel.create({
-      patientId,
+      patientId: patient._id.toString(),
       patientName: patientUser.name,
       doctorId,
-      doctorName: doctor.clinic,
+      doctorName: doctorUser?.name || doctor.clinic,
       diagnosis,
       prescription,
       notes,
@@ -80,15 +87,10 @@ export class MedicalRecordsService {
 
   // Get Patient Medical Records method - Patient ke saare medical records lein
   async getPatientMedicalRecords(patientId: string) {
-    // Patient lein database se
-    const patient = await this.patientModel.findById(patientId);
-    if (!patient) {
-      throw new NotFoundException('Patient not found');
-    }
+    const patient = await this.resolvePatient(patientId);
 
-    // Medical records lein database se
     const medicalRecords = await this.medicalRecordModel
-      .find({ patientId })
+      .find({ patientId: patient._id.toString() })
       .sort({ createdAt: -1 })
       .exec();
 

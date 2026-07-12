@@ -123,30 +123,38 @@ export class PatientsService {
     };
   }
 
-  // Get Patient By ID method - Doctor patient ki details le sakta hai
-  async getPatientById(patientId: string) {
-    // Patient lein database se
-    const patient = await this.patientModel.findById(patientId);
+  /** Resolve patient by MongoDB _id or by linked userId (appointments store userId as patientId). */
+  private async resolvePatient(patientIdOrUserId: string) {
+    let patient = await this.patientModel.findById(patientIdOrUserId);
+    if (!patient) {
+      patient = await this.patientModel.findOne({ userId: patientIdOrUserId });
+    }
     if (!patient) {
       throw new NotFoundException('Patient not found');
     }
+    return patient;
+  }
 
-    // User lein database se
+  // Get Patient By ID method - Doctor patient ki details le sakta hai
+  async getPatientById(patientId: string) {
+    const patient = await this.resolvePatient(patientId);
+
     const user = await this.userModel.findById(patient.userId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    // Patient aur user data return karein (sensitive data hide karke)
     return {
       user: {
         id: user._id.toString(),
+        email: user.email,
         name: user.name,
         phone: user.phone,
         profileImage: user.profileImage,
       },
       patient: {
         id: patient._id.toString(),
+        userId: patient.userId,
         dob: patient.dob,
         age: patient.age,
         bloodGroup: patient.bloodGroup,
@@ -154,6 +162,7 @@ export class PatientsService {
         allergies: patient.allergies,
         emergencyContactName: patient.emergencyContactName,
         emergencyContactPhone: patient.emergencyContactPhone,
+        address: patient.address,
       },
     };
   }

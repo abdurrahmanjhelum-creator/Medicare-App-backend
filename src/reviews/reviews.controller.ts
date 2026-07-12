@@ -1,5 +1,5 @@
 // Reviews Controller - Reviews endpoints handle karne ke liye
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -22,7 +22,10 @@ export class ReviewsController {
 
   // Get Reviews By Doctor ID endpoint - Doctor ke saare reviews lein (public)
   @Get('doctor/:doctorId')
-  async getReviewsByDoctorId(@Param('doctorId') doctorId: string, @Body() getReviewsDto: GetReviewsDto) {
+  async getReviewsByDoctorId(
+    @Param('doctorId') doctorId: string,
+    @Query() getReviewsDto: GetReviewsDto,
+  ) {
     return this.reviewsService.getReviewsByDoctorId({ ...getReviewsDto, doctorId });
   }
 

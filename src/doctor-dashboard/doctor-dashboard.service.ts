@@ -48,6 +48,7 @@ export class DoctorDashboardService {
     if (updateProfileDto.qualification) doctor.qualification = updateProfileDto.qualification;
     if (updateProfileDto.experience !== undefined) doctor.experience = updateProfileDto.experience;
     if (updateProfileDto.clinic) doctor.clinic = updateProfileDto.clinic;
+    if (updateProfileDto.clinicAddress) doctor.clinicAddress = updateProfileDto.clinicAddress;
     if (updateProfileDto.fee !== undefined) doctor.fee = updateProfileDto.fee;
     if (updateProfileDto.bio) doctor.bio = updateProfileDto.bio;
     await doctor.save();
@@ -67,7 +68,8 @@ export class DoctorDashboardService {
   async getEarnings(userId: string, getEarningsDto: GetEarningsDto) {
     const doctor = await this.doctorModel.findOne({ userId });
     if (!doctor) throw new NotFoundException('Doctor profile not found');
-    const query: any = { doctorId: doctor._id.toString(), status: 'completed' };
+    // appointments store doctorId = userId, not doctor._id
+    const query: any = { doctorId: userId, status: 'completed' };
     if (getEarningsDto.startDate || getEarningsDto.endDate) {
       query.date = {};
       if (getEarningsDto.startDate) query.date.$gte = new Date(getEarningsDto.startDate);
@@ -80,35 +82,51 @@ export class DoctorDashboardService {
   async getStats(userId: string) {
     const doctor = await this.doctorModel.findOne({ userId });
     if (!doctor) throw new NotFoundException('Doctor profile not found');
-    const doctorId = doctor._id.toString();
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const doctorId = userId;
 
-    const [totalAppointments, completedCount, upcomingCount, cancelledCount, pendingCount, todayCount, uniquePatients] = await Promise.all([
+    const pkOffset = 5 * 60 * 60 * 1000;
+    const nowPk = new Date(Date.now() + pkOffset);
+
+    const startOfToday = new Date(Date.UTC(nowPk.getUTCFullYear(), nowPk.getUTCMonth(), nowPk.getUTCDate(), 0, 0, 0));
+    const endOfToday = new Date(Date.UTC(nowPk.getUTCFullYear(), nowPk.getUTCMonth(), nowPk.getUTCDate(), 23, 59, 59, 999));
+
+    const dayOfWeek = nowPk.getUTCDay();
+    const diff = nowPk.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    const startOfWeek = new Date(Date.UTC(nowPk.getUTCFullYear(), nowPk.getUTCMonth(), diff, 0, 0, 0));
+
+    const [totalAppointments, completedCount, confirmedCount, cancelledCount, pendingCount, todayCount, todayCompletedCount, uniquePatients, thisWeekCount] = await Promise.all([
       this.appointmentModel.countDocuments({ doctorId }),
       this.appointmentModel.countDocuments({ doctorId, status: 'completed' }),
       this.appointmentModel.countDocuments({ doctorId, status: 'confirmed' }),
       this.appointmentModel.countDocuments({ doctorId, status: { $in: ['cancelled', 'rejected'] } }),
       this.appointmentModel.countDocuments({ doctorId, status: 'pending' }),
       this.appointmentModel.countDocuments({ doctorId, date: { $gte: startOfToday, $lte: endOfToday } }),
+      this.appointmentModel.countDocuments({ doctorId, status: 'completed', date: { $gte: startOfToday, $lte: endOfToday } }),
       this.appointmentModel.distinct('patientId', { doctorId }),
+      this.appointmentModel.countDocuments({ doctorId, date: { $gte: startOfWeek } }),
     ]);
 
-    const recentAppointments = await this.appointmentModel.find({ doctorId }).sort({ date: -1, time: -1 }).limit(5).lean().exec();
     const earningsChart = await this._getEarningsChartData(doctorId, doctor.fee);
+
+    const recentAppointments = await this.appointmentModel
+      .find({ doctorId })
+      .sort({ date: -1, createdAt: -1 })
+      .limit(5)
+      .select('patientId patientName date time type status patientNotes')
+      .lean()
+      .exec();
 
     return {
       totalAppointments,
       completedAppointments: completedCount,
-      upcomingAppointments: upcomingCount,
+      upcomingAppointments: pendingCount + confirmedCount,
       cancelledAppointments: cancelledCount,
       pendingAppointments: pendingCount,
       todaysAppointmentsCount: todayCount,
       totalPatients: uniquePatients.length,
       totalEarnings: completedCount * doctor.fee,
-      todayEarnings: 0, // Simplified or calculated from today's completed
-      thisWeekAppointments: 0,
+      todayEarnings: todayCompletedCount * doctor.fee,
+      thisWeekAppointments: thisWeekCount,
       recentAppointments,
       earningsChart,
     };
@@ -117,14 +135,22 @@ export class DoctorDashboardService {
   private async _getEarningsChartData(doctorId: string, fee: number) {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const data = [];
+    const pkOffset = 5 * 60 * 60 * 1000;
+    const nowPk = new Date(Date.now() + pkOffset);
+
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      d.setHours(0, 0, 0, 0);
+      // Find date of i days ago in PKT
+      const dPk = new Date(nowPk.getTime() - i * 24 * 60 * 60 * 1000);
+      const d = new Date(Date.UTC(dPk.getUTCFullYear(), dPk.getUTCMonth(), dPk.getUTCDate(), 0, 0, 0));
       const nextD = new Date(d);
-      nextD.setDate(d.getDate() + 1);
-      const count = await this.appointmentModel.countDocuments({ doctorId, status: 'completed', date: { $gte: d, $lt: nextD } });
-      data.push({ date: days[d.getDay()], amount: count * fee });
+      nextD.setUTCDate(d.getUTCDate() + 1);
+
+      const count = await this.appointmentModel.countDocuments({
+        doctorId,
+        status: 'completed',
+        date: { $gte: d, $lt: nextD },
+      });
+      data.push({ date: days[d.getUTCDay()], amount: count * fee });
     }
     return data;
   }

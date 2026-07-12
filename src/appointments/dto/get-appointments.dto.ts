@@ -2,10 +2,12 @@
 import { IsOptional, IsString, IsEnum } from 'class-validator';
 
 export class GetAppointmentsDto {
-  // Status filter - upcoming, completed, cancelled, ya all
-  @IsEnum(['upcoming', 'completed', 'cancelled', 'all'], { message: 'Status invalid hai' })
+  // Status filter - pending, confirmed, upcoming, completed, cancelled, rejected, ya all
+  @IsEnum(['pending', 'confirmed', 'upcoming', 'completed', 'cancelled', 'rejected', 'all'], {
+    message: 'Status invalid hai',
+  })
   @IsOptional()
-  status?: 'upcoming' | 'completed' | 'cancelled' | 'all';
+  status?: 'pending' | 'confirmed' | 'upcoming' | 'completed' | 'cancelled' | 'rejected' | 'all';
 
   // Start date filter
   @IsString()

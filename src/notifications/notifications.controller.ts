@@ -1,5 +1,5 @@
 // Notifications Controller - Notifications endpoints handle karne ke liye
-import { Controller, Get, Put, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetNotificationsDto } from './dto/get-notifications.dto';
@@ -12,7 +12,7 @@ export class NotificationsController {
 
   // Get Notifications endpoint - User ke saare notifications lein (protected)
   @Get()
-  async getNotifications(@Request() req, @Body() getNotificationsDto: GetNotificationsDto) {
+  async getNotifications(@Request() req, @Query() getNotificationsDto: GetNotificationsDto) {
     return this.notificationsService.getNotifications(req.user.userId, getNotificationsDto);
   }
 

@@ -38,6 +38,11 @@ export class UpdateProfileDto {
   @IsOptional()
   clinic?: string;
 
+  // Clinic/Hospital address (optional)
+  @IsString()
+  @IsOptional()
+  clinicAddress?: string;
+
   // Consultation fee (optional)
   @IsNumber()
   @Min(0)

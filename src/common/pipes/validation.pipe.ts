@@ -1,12 +1,26 @@
-// TODO: Global validation pipe for DTO validation
-// TODO: Import PipeTransform, Injectable, ArgumentMetadata, BadRequestException from '@nestjs/common'
-// TODO: Import validate from 'class-validator'
-// TODO: Import plainToClass from 'class-transformer'
-// TODO: Create ValidationPipe class implementing PipeTransform
-// TODO: Use @Injectable decorator
-// TODO: Implement transform method
-// TODO: Convert plain object to class instance
-// TODO: Validate the class instance using class-validator
-// TODO: Throw BadRequestException if validation fails
-// TODO: Return validated object
-// TODO: Export the ValidationPipe
+import { PipeTransform, Injectable, ArgumentMetadata, BadRequestException } from '@nestjs/common';
+import { validate } from 'class-validator';
+import { plainToClass } from 'class-transformer';
+
+@Injectable()
+export class ValidationPipe implements PipeTransform<any> {
+  async transform(value: any, { metatype }: ArgumentMetadata) {
+    if (!metatype || !this.toValidate(metatype)) {
+      return value;
+    }
+    const object = plainToClass(metatype, value);
+    const errors = await validate(object);
+    if (errors.length > 0) {
+      const messages = errors.map((err) => {
+        return Object.values(err.constraints).join(', ');
+      });
+      throw new BadRequestException(messages);
+    }
+    return value;
+  }
+
+  private toValidate(metatype: Function): boolean {
+    const types: Function[] = [String, Boolean, Number, Array, Object];
+    return !types.includes(metatype);
+  }
+}

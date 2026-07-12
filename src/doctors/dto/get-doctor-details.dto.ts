@@ -1,3 +1,7 @@
-// TODO: DTO for getting doctor details
-// TODO: Import IsNotEmpty, IsString from class-validator
-// TODO: Create doctorId field with @IsNotEmpty() and @IsString()
+import { IsNotEmpty, IsString } from 'class-validator';
+
+export class GetDoctorDetailsDto {
+  @IsNotEmpty()
+  @IsString()
+  doctorId: string;
+}

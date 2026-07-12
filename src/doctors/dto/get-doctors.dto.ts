@@ -1,7 +1,32 @@
-// TODO: DTO for getting doctors list with filters
-// TODO: Import IsOptional, IsString, IsNumber from class-validator
-// TODO: Create optional specialization field with @IsOptional() and @IsString()
-// TODO: Create optional minRating field with @IsOptional() and @IsNumber()
-// TODO: Create optional search field with @IsOptional() and @IsString()
-// TODO: Create optional page field with @IsOptional() and @IsNumber()
-// TODO: Create optional limit field with @IsOptional() and @IsNumber()
+import { IsOptional, IsString, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class GetDoctorsDto {
+  @IsOptional()
+  @IsString()
+  specialization?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  minRating?: number;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  limit?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  maxFee?: number;
+}

@@ -1,10 +1,9 @@
-// TODO: Mail configuration module
-// TODO: Import registerAs from @nestjs/config
-// TODO: Create mail configuration using registerAs
-// TODO: Define mail host (e.g., smtp.gmail.com)
-// TODO: Define mail port (e.g., 587)
-// TODO: Define mail username
-// TODO: Define mail password
-// TODO: Define mail from address
-// TODO: Return configuration object
-// TODO: Export the mail configuration
+import { registerAs } from '@nestjs/config';
+
+export default registerAs('mail', () => ({
+  host: process.env.MAIL_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.MAIL_PORT, 10) || 587,
+  user: process.env.MAIL_USER,
+  pass: process.env.MAIL_PASS,
+  from: process.env.MAIL_FROM || '"Medicare Support" <support@medicare.app>',
+}));
