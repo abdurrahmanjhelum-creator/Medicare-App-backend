@@ -1,11 +1,11 @@
 // Get Reviews DTO - Doctor ke reviews lene ke liye with pagination
-import { IsNotEmpty, IsString, IsOptional, IsInt, Min } from 'class-validator';
+import { IsString, IsOptional, IsInt, Min } from 'class-validator';
 
 export class GetReviewsDto {
-  // Doctor ID - jis doctor ke reviews chahiye
+  // Doctor ID - URL path se milti hai, query mein optional rakhein validation avoid karne ke liye
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Doctor ID zaroori hai' })
-  doctorId: string;
+  doctorId?: string;
 
   // Page number for pagination (optional)
   @IsOptional()

@@ -9,6 +9,10 @@ export class Review extends Document {
   // Review ID - MongoDB automatically generates this
   _id: string;
 
+  // Appointment ID - Jis appointment ke baad review diya gaya
+  @Prop({ required: true, unique: true })
+  appointmentId: string;
+
   // Patient ID - jis ne review likha
   @Prop({ required: true })
   patientId: string;

@@ -2,6 +2,11 @@
 import { IsNotEmpty, IsString, IsNumber, Min, Max } from 'class-validator';
 
 export class CreateReviewDto {
+  // Appointment ID - Jis appointment ka review hai
+  @IsString()
+  @IsNotEmpty({ message: 'Appointment ID zaroori hai' })
+  appointmentId: string;
+
   // Doctor ID - jis doctor ke liye review hai
   @IsString()
   @IsNotEmpty({ message: 'Doctor ID zaroori hai' })

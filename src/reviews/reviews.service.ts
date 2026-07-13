@@ -6,6 +6,7 @@ import { Review, ReviewDocument } from './entities/review.entity';
 import { Doctor, DoctorDocument } from '../auth/entities/doctor.entity';
 import { Patient, PatientDocument } from '../auth/entities/patient.entity';
 import { User, UserDocument } from '../auth/entities/user.entity';
+import { Appointment, AppointmentDocument } from '../appointments/entities/appointment.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { GetReviewsDto } from './dto/get-reviews.dto';
 import { DeleteReviewDto } from './dto/delete-review.dto';
@@ -17,50 +18,71 @@ export class ReviewsService {
     @InjectModel(Doctor.name) private doctorModel: Model<DoctorDocument>,
     @InjectModel(Patient.name) private patientModel: Model<PatientDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Appointment.name) private appointmentModel: Model<AppointmentDocument>,
   ) {}
 
   // Create Review method - Naya review create karein
-  async createReview(patientId: string, createReviewDto: CreateReviewDto) {
-    const { doctorId, rating, comment } = createReviewDto;
+  async createReview(patientUserId: string, createReviewDto: CreateReviewDto) {
+    const { appointmentId, doctorId, rating, comment } = createReviewDto;
 
-    // Doctor lein database se
+    // 1. Patient profile check karein
+    const patient = await this.patientModel.findOne({ userId: patientUserId });
+    if (!patient) {
+      throw new NotFoundException('Patient profile not found');
+    }
+
+    // 2. Appointment check karein
+    const appointment = await this.appointmentModel.findById(appointmentId);
+    if (!appointment) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    // 3. Business Rules Validation
+    // Check if appointment belongs to this patient
+    if (appointment.patientId !== patientUserId) {
+      throw new ForbiddenException('Aap sirf apni appointments ka review de sakte hain');
+    }
+
+    // Check if appointment belongs to this doctor
+    if (appointment.doctorId !== doctorId) {
+      throw new BadRequestException('Appointment is doctor ki nahi hai');
+    }
+
+    // Check if status is completed
+    if (appointment.status !== 'completed') {
+      throw new BadRequestException('Aap sirf completed appointments ka review de sakte hain');
+    }
+
+    // 4. Check for duplicate review for this appointment
+    const existingReview = await this.reviewModel.findOne({ appointmentId });
+    if (existingReview) {
+      throw new BadRequestException('Aap is appointment ka review already de chuke hain');
+    }
+
+    // 5. Doctor existence check
     const doctor = await this.doctorModel.findById(doctorId);
     if (!doctor) {
       throw new NotFoundException('Doctor not found');
     }
 
-    // Patient lein database se
-    const patient = await this.patientModel.findOne({ userId: patientId });
-    if (!patient) {
-      throw new NotFoundException('Patient profile not found');
-    }
-
-    // Check karein ke patient already review nahi ki hai
-    const existingReview = await this.reviewModel.findOne({
-      patientId: patient._id.toString(),
-      doctorId,
-    });
-    if (existingReview) {
-      throw new BadRequestException('Aap already is doctor ko review de chuke hain');
-    }
-
-    // Patient user lein
-    const patientUser = await this.userModel.findById(patientId);
+    // 6. Patient user details lein
+    const patientUser = await this.userModel.findById(patientUserId);
     if (!patientUser) {
       throw new NotFoundException('Patient user not found');
     }
 
-    // Review create karein
+    // 7. Review create karein
     const review = await this.reviewModel.create({
-      patientId: patient._id.toString(),
+      appointmentId,
+      patientId: patientUserId,
       patientName: patientUser.name,
       doctorId,
-      doctorName: doctor.clinic,
+      doctorName: doctor.clinic, // Using clinic name as doctor name identifier here, or use user.name if preferred
       rating,
       comment,
     });
 
-    // Doctor ki rating update karein
+    // 8. Doctor ki rating update karein
     await this.updateDoctorRating(doctorId);
 
     return {
@@ -107,7 +129,7 @@ export class ReviewsService {
   }
 
   // Delete Review method - Review delete karein
-  async deleteReview(patientId: string, deleteReviewDto: DeleteReviewDto) {
+  async deleteReview(patientUserId: string, deleteReviewDto: DeleteReviewDto) {
     const { reviewId } = deleteReviewDto;
 
     // Review lein database se
@@ -116,22 +138,17 @@ export class ReviewsService {
       throw new NotFoundException('Review not found');
     }
 
-    // Patient lein database se
-    const patient = await this.patientModel.findOne({ userId: patientId });
-    if (!patient) {
-      throw new NotFoundException('Patient profile not found');
-    }
-
     // Check karein ke review patient ka hai
-    if (review.patientId !== patient._id.toString()) {
+    if (review.patientId !== patientUserId) {
       throw new ForbiddenException('Aap sirf apne reviews delete kar sakte hain');
     }
 
     // Review delete karein
+    const doctorId = review.doctorId;
     await this.reviewModel.findByIdAndDelete(reviewId);
 
     // Doctor ki rating update karein
-    await this.updateDoctorRating(review.doctorId);
+    await this.updateDoctorRating(doctorId);
 
     return {
       message: 'Review deleted successfully',
@@ -139,16 +156,10 @@ export class ReviewsService {
   }
 
   // Get My Reviews method - Current patient ke saare reviews lein
-  async getMyReviews(patientId: string) {
-    // Patient lein database se
-    const patient = await this.patientModel.findOne({ userId: patientId });
-    if (!patient) {
-      throw new NotFoundException('Patient profile not found');
-    }
-
+  async getMyReviews(patientUserId: string) {
     // Reviews lein database se
     const reviews = await this.reviewModel
-      .find({ patientId: patient._id.toString() })
+      .find({ patientId: patientUserId })
       .sort({ createdAt: -1 })
       .exec();
 

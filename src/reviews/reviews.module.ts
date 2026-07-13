@@ -7,6 +7,7 @@ import { Review, ReviewSchema } from './entities/review.entity';
 import { Doctor, DoctorSchema } from '../auth/entities/doctor.entity';
 import { Patient, PatientSchema } from '../auth/entities/patient.entity';
 import { User, UserSchema } from '../auth/entities/user.entity';
+import { Appointment, AppointmentSchema } from '../appointments/entities/appointment.entity';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { User, UserSchema } from '../auth/entities/user.entity';
       { name: Doctor.name, schema: DoctorSchema },
       { name: Patient.name, schema: PatientSchema },
       { name: User.name, schema: UserSchema },
+      { name: Appointment.name, schema: AppointmentSchema },
     ]),
   ],
   controllers: [ReviewsController],
